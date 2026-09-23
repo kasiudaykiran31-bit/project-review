@@ -1,6 +1,6 @@
 const KEY_USERS="sps_users", KEY_REPORTS="sps_reports", KEY_SESSION="sps_session", KEY_NOTICE="sps_notices";
 const demoUsers=[
- {id:"ADM001",name:"Administrator",email:"admin@gmail.com",password:"admin123",role:"admin"},
+ {id:"ADM001",name:"Administrator",email:"kasiudaykiran31@gmail.com",password:"Kiran@131",role:"admin"},
  {id:"2500031331",name:"Uday Kiran",email:"student@gmail.com",password:"student123",role:"student",phone:"9876543210",program:"B.Tech CSE",year:"2nd Year",section:"A"},
  {id:"STU002",name:"Rahul Kumar",email:"rahul@gmail.com",password:"student123",role:"student",phone:"9876501234",program:"B.Tech CSE",year:"2nd Year",section:"B"}
 ];
