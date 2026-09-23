@@ -28,7 +28,7 @@ document.getElementById("loginForm")?.addEventListener("submit",e=>{
  const u=getUsers().find(x=>x.email.toLowerCase()===email&&x.password===pass),m=document.getElementById("loginMsg");
  if(!u){m.className="msg error";m.textContent="Invalid email or password.";return}
  localStorage.setItem(KEY_SESSION,JSON.stringify({email:u.email,role:u.role}));
- location.href=u.role==="admin"?"admin.html":"dashboard.html";
+ location.href=u.role==="admin"?"admin.html":u.role==="parent"?"parent.html":"dashboard.html";
 });
 
 function requireRole(role){const s=session();if(!s||s.role!==role){location.href="index.html";return null}return s}
@@ -85,3 +85,53 @@ function adminReports(c){let students=getUsers().filter(x=>x.role==="student");c
 function adminNotices(c){c.innerHTML=`<section class="panel"><div class="panel-title"><div><h3>Manage Notices</h3><p>Notices are displayed on the student dashboard.</p></div>📢</div><form id="noticeForm" class="form-grid"><div class="form-group"><label>Title</label><input id="nTitle" required placeholder="Notice title"></div><div class="form-group"><label>Message</label><input id="nText" required placeholder="Notice message"></div><div class="form-group full"><button class="btn primary">Publish Notice</button></div></form><div id="noticeList">${getNotices().map((n,i)=>`<div class="notice"><b>${esc(n.title)}</b><span>${esc(n.text)}</span> <button class="small-btn red" style="float:right" onclick="deleteNotice(${i})">Delete</button></div>`).join("")}</div></section>`;document.getElementById("noticeForm").onsubmit=e=>{e.preventDefault();let ns=getNotices();ns.unshift({title:nTitle.value,text:nText.value});localStorage.setItem(KEY_NOTICE,JSON.stringify(ns));toast("Notice published");adminPage("notices",document.querySelector('[data-page="notices"]'))}}
 function deleteNotice(i){let n=getNotices();n.splice(i,1);localStorage.setItem(KEY_NOTICE,JSON.stringify(n));adminPage("notices",document.querySelector('[data-page="notices"]'))}
 function adminAnalytics(c){let rs=getReports(),avg=rs.length?Math.round(rs.reduce((a,r)=>a+r.marks,0)/rs.length):0;let high=rs.filter(r=>r.marks>=80).length;let low=rs.filter(r=>r.marks<60).length;c.innerHTML=`<section class="panel"><div class="panel-title"><div><h3>Performance Analytics</h3><p>Summary based on saved student reports</p></div>📈</div><div class="cards"><div class="stat"><b>${avg}%</b><small>Average Marks</small></div><div class="stat"><b>${high}</b><small>Students ≥ 80%</small></div><div class="stat"><b>${low}</b><small>Students below 60%</small></div><div class="stat"><b>${rs.length}</b><small>Reports Analysed</small></div></div>${reportTable(rs)}</section>`}
+
+document.getElementById("registerForm")?.addEventListener("submit", e=>{
+  e.preventDefault();
+  const name=document.getElementById("regName").value.trim();
+  const id=document.getElementById("regId").value.trim();
+  const email=document.getElementById("regEmail").value.trim().toLowerCase();
+  const phone=document.getElementById("regPhone").value.trim();
+  const program=document.getElementById("regProgram").value;
+  const year=document.getElementById("regYear").value;
+  const section=document.getElementById("regSection").value;
+  const role=document.getElementById("regRole")?.value||"student";
+  const studentEmail=document.getElementById("regStudentEmail")?.value.trim().toLowerCase()||"";
+  const password=document.getElementById("regPassword").value;
+  const confirm=document.getElementById("regConfirm").value;
+  const msg=document.getElementById("registerMsg");
+  if(password!==confirm){msg.className="msg error";msg.textContent="Passwords do not match.";return}
+  let users=getUsers();
+  if(users.some(u=>u.email.toLowerCase()===email)){msg.className="msg error";msg.textContent="Email already registered. Please login.";return}
+  if(users.some(u=>u.id.toLowerCase()===id.toLowerCase())){msg.className="msg error";msg.textContent="Student ID already exists.";return}
+  if(role==="parent" && !users.some(u=>u.email.toLowerCase()===studentEmail && u.role==="student")){msg.className="msg error";msg.textContent="Linked student email was not found.";return}
+  users.push({id:id||"PAR"+String(Date.now()).slice(-5),name,email,password,role,phone,program,year,section,studentEmail:role==="parent"?studentEmail:""});
+  localStorage.setItem(KEY_USERS,JSON.stringify(users));
+  msg.className="msg ok";msg.textContent="Account created successfully. Redirecting to login...";
+  setTimeout(()=>location.href="index.html",900);
+});
+
+function initParent(){
+  const s=session();
+  if(!s || s.role!=="parent"){location.href="index.html";return}
+  const u=getUsers().find(x=>x.email===s.email);
+  if(!u){logout();return}
+  document.getElementById("parentName").textContent=u.name;
+  document.getElementById("parentTopName").textContent=u.name;
+  document.getElementById("parentAvatar").textContent=initials(u.name);
+  parentHome();
+}
+function parentHome(){
+  const c=document.getElementById("parentContent");
+  const u=getUsers().find(x=>x.email===session().email);
+  const studentEmail=u.studentEmail;
+  const student=getUsers().find(x=>x.email===studentEmail);
+  const r=getReports().find(x=>x.email===studentEmail);
+  c.innerHTML=`<div class="hero"><div><h1>Welcome, ${esc(u.name)}</h1><p>View your linked student's latest academic performance.</p></div><div class="hero-icon">👨‍👩‍👧</div></div>
+  <section class="panel"><div class="panel-title"><div><h3>Linked Student</h3><p>Student connected to this parent account</p></div>🎓</div>
+  ${student?`<div class="profile-grid"><div class="info"><small>Name</small><b>${esc(student.name)}</b></div><div class="info"><small>Student ID</small><b>${esc(student.id)}</b></div><div class="info"><small>Program</small><b>${esc(student.program||"B.Tech CSE")}</b></div><div class="info"><small>Section</small><b>${esc(student.section||"A")}</b></div></div>`:`<p>No student is linked yet. Ask the administrator to connect a student email.</p>`}
+  </section>
+  ${r?`<section class="panel" style="margin-top:18px"><div class="panel-title"><div><h3>Latest Report</h3><p>Latest information entered by Admin</p></div>📊</div><div class="big-result"><div class="result-box"><b>${r.marks}%</b><span>Marks</span></div><div class="result-box"><b>${r.attendance}%</b><span>Attendance</span></div><div class="result-box"><b>${r.marks>=90?"A+":r.marks>=80?"A":r.marks>=70?"B":"C"}</b><span>Grade</span></div></div><div class="info" style="margin-top:14px"><small>Teacher Remarks</small><b>${esc(r.remarks)}</b></div></section>`:""}`;
+}
+function parentReport(){parentHome()}
+function parentNotices(){const c=document.getElementById("parentContent");c.innerHTML=`<section class="panel"><div class="panel-title"><div><h3>Latest Notices</h3><p>College announcements</p></div>📢</div>${getNotices().map(n=>`<div class="notice"><b>${esc(n.title)}</b><span>${esc(n.text)}</span></div>`).join("")}</section>`}
